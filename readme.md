@@ -1,54 +1,53 @@
-# Шаблон для выполнения тестового задания
+# Wildberries Tariffs Sync Service
 
-## Описание
-Шаблон подготовлен для того, чтобы попробовать сократить трудоемкость выполнения тестового задания.
+Сервис для автоматического сбора данных о тарифах коробов Wildberries, сохранения их в базу данных PostgreSQL и последующей синхронизации с Google Таблицами.
 
-В шаблоне настоены контейнеры для `postgres` и приложения на `nodejs`.  
-Для взаимодействия с БД используется `knex.js`.  
-В контейнере `app` используется `build` для приложения на `ts`, но можно использовать и `js`.
+## Функционал
+* **Сбор данных:** Ежечасный опрос WB API (`/api/v1/tariffs/box`).
+* **Хранение:** Сохранение актуальных срезов данных в PostgreSQL с использованием логики `Upsert` (обновление при совпадении склада и даты).
+* **Синхронизация:** Экспорт актуальных тарифов (на текущий день) в одну или несколько Google Таблиц.
+* **Надежность:** Валидация переменных окружения через Zod, обработка некорректных данных (NaN) от API, автоматические миграции БД.
 
-Шаблон не является обязательным!\
-Можно использовать как есть или изменять на свой вкус.
+## Стек технологий
+* **Runtime:** Node.js (ESM)
+* **Language:** TypeScript
+* **Database:** PostgreSQL + Knex.js
+* **Containerization:** Docker + Docker Compose
+* **APIs:** Google Sheets API v4, Wildberries Common API
 
-Все настройки можно найти в файлах:
-- compose.yaml
-- dockerfile
-- package.json
-- tsconfig.json
-- src/config/env/env.ts
-- src/config/knex/knexfile.ts
+## Быстрый запуск
 
-## Команды:
+### 1. Подготовка окружения
+Создайте файл `.env` в корне проекта (на основе `.env.example`):
+```env
+# Wildberries
+WB_API_TOKEN=ваш_токен
 
-Запуск базы данных:
-```bash
-docker compose up -d --build postgres
+# PostgreSQL
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
+
+# Google Cloud Service Account
+GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Google Spreadsheet IDS для первого запуска (опционально)
+INITIAL_SPREADSHEET_IDS=id_of_spreadsheet
 ```
 
-Для выполнения миграций и сидов не из контейнера:
-```bash
-npm run knex:dev migrate latest
-```
+### 2. Запуск при помощи Docker
+
+Запустить приложение можно при помощи команды:
 
 ```bash
-npm run knex:dev seed run
-```
-Также можно использовать и остальные команды (`migrate make <name>`,`migrate up`, `migrate down` и т.д.)
-
-Для запуска приложения в режиме разработки:
-```bash
-npm run dev
+docker-compose up -d --build
 ```
 
-Запуск проверки самого приложения:
-```bash
-docker compose up -d --build app
-```
+При старте контейнер автоматически применит миграции к базе данных
 
-Для финальной проверки рекомендую:
-```bash
-docker compose down --rmi local --volumes
-docker compose up --build
-```
+### 3. Полученные данных
 
-PS: С наилучшими пожеланиями!
+После запуска приложение сразу же произведёт необходимые запросы и сохранит в своей базе данных полученные данные. Если добавлены ID гугл таблиц, то она сразу попытается синхронизировать данные. Добавить ID гугл таблиц можно, перечислив их через запятую в env параметре INITIAL_SPREADSHEET_IDS, или вручную, зайдя внутрь DB контейнера и совершив SQL запрос.

@@ -60,6 +60,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PORT: ${APP_PORT}
       NODE_ENV: production
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_SERVICE_ACCOUNT_EMAIL}
+      GOOGLE_PRIVATE_KEY: ${GOOGLE_PRIVATE_KEY}
+      WB_API_TOKEN: ${WB_API_TOKEN}
+      INITIAL_SPREADSHEET_IDS: ${INITIAL_SPREADSHEET_IDS}
 
     ports:
       - ${APP_PORT}:${APP_PORT}
@@ -76,5 +80,7 @@ services:
         max-size: 10m
         max-file: 5
 
-    command: [ "npm", "run", "start" ]
+    command: >
+      sh -c "npx knex migrate:latest --knexfile dist/config/knex/knexfile.js && npm run start"
+
     restart: unless-stopped
